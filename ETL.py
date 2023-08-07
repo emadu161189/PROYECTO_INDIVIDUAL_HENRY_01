@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import re
 
 def Desanidar(dataset, num_columna):
@@ -48,6 +49,15 @@ def obtener(dic_str):
     
     return id if id else None
 
+def eliminar_columnas_nulas(df, porcentaje):
+
+        porcentaje_nulos = df.isnull().mean()
+        eliminar = porcentaje_nulos[porcentaje_nulos > (porcentaje / 100)].index
+        df = df.drop(columns=eliminar)
+       
+
+        return df
+
 #Importar archivos
 
 movies_df = pd.read_csv("C:/Users/eduen/AppData/Local/Temp/movies_dataset.csv", low_memory= False)
@@ -86,9 +96,37 @@ credits_df = pd.concat([credits_df, col], axis= 1)
 directors_df = credits_df[credits_df.columns[[0, 5]]]
 directors_df.columns.values[1] = 'director'
 
-#Merge y carga
+#Merge por id
 movies_df.loc[:, 'id'] = pd.to_numeric(movies_df['id'], errors='coerce')
 directors_df.loc[:, 'id'] = pd.to_numeric(directors_df['id'], errors='coerce')
 df = pd.merge(movies_df, directors_df, on='id', how='outer')
+
+#/Unir todas las columnas desanidadas por su sub-categoria "name" en una sola columna.
+df['genres: name'] = df['genres: name'].fillna('')
+df['genres'] = df['genres: name'].apply(lambda fila: ' - '.join(filter(None, fila)), axis=1)
+df = df.drop(columns=['genres: name'])
+df['genres'] = df['genres'].str.replace(' ', '')
+
+df['production_companies: name'] = df['production_companies: name'].fillna('')
+df['production_companies'] = df['production_companies: name'].apply(lambda fila: ' - '.join(filter(None, fila)), axis=1)
+df = df.drop(columns=['production_companies: name'])
+df['production_companies'] = df['production_companies'].str.replace(' ', '')
+
+df['production_countries: name'] = df['production_countries: name'].fillna('')
+df['production_countries'] = df['production_countries: name'].apply(lambda fila: ' - '.join(filter(None, fila)), axis=1)
+df = df.drop(columns=['production_countries: name'])
+df['production_countries'] = df['production_countries'].str.replace(' ', '')
+
+df['spoken_languages: name'] = df['spoken_languages: name'].fillna('')
+df['spoken_languages'] = df['spoken_languages: name'].apply(lambda fila: ' - '.join(filter(None, fila)), axis=1)
+df = df.drop(columns=['spoken_languages: name'])
+df['spoken_languages'] = df['spoken_languages'].str.replace(' ', '')
+#/
+
+#Eliminar columnas con mas del 70% de datos nulos ya que dicha ausencia vuelve irrelevante la variable
+df = eliminar_columnas_nulas(df, 70)
+
+df.drop('vote_count', axis=1, inplace=True) #Se elimina la columna 'vote_count' considerada irrelevante ya que el puntaje de reseña no depende de la cantidad de votos sino de los resultados de los mismos
+df.drop('id', axis=1, inplace=True)#Se elimina la columna 'id' ya que es redundante con el indice del dataset y no se utiliza como clave foranea.
 
 df.to_csv('etl_df', index= False)
