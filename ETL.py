@@ -58,6 +58,13 @@ def eliminar_columnas_nulas(df, porcentaje):
 
         return df
 
+def retorno(df):
+
+        if df['budget'] > 0:
+                return round((df['revenue'] / df['budget'])*100, 0)
+        else:
+                return 0
+
 #Importar archivos
 
 movies_df = pd.read_csv("C:/Users/eduen/AppData/Local/Temp/movies_dataset.csv", low_memory= False)
@@ -83,8 +90,7 @@ movies_df['budget'] = movies_df['budget'].fillna(0)
 movies_df['revenue'] = movies_df['revenue'].fillna(0)
 movies_df.dropna(subset=['release_date'], inplace=True)
 movies_df['release_date'] = pd.to_datetime(movies_df['release_date'], format= '%Y-%m-%d', errors= 'coerce')
-movies_df['return'] = movies_df['revenue']/movies_df['budget']
-movies_df['return'] = movies_df['return'].fillna(0)
+movies_df['return'] = movies_df.apply(retorno, axis= 1)
 
 #ETL credits_df
 credits_df['A'] = credits_df['crew'].apply(obtener)
