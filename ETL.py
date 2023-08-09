@@ -64,6 +64,9 @@ def retorno(df):
                 return round((df['revenue'] / df['budget'])*100, 0)
         else:
                 return 0
+        
+def insertar_espacio(texto):
+    return re.sub(r'(?<=.)([A-Z])', r' \1', texto)
 
 #Importar archivos
 
@@ -88,9 +91,17 @@ movies_df.drop('homepage', axis=1, inplace=True)
 movies_df['budget'] = pd.to_numeric(movies_df['budget'], errors= 'coerce')
 movies_df['budget'] = movies_df['budget'].fillna(0)
 movies_df['revenue'] = movies_df['revenue'].fillna(0)
+movies_df['runtime'] = movies_df['runtime'].fillna(0)
 movies_df.dropna(subset=['release_date'], inplace=True)
 movies_df['release_date'] = pd.to_datetime(movies_df['release_date'], format= '%Y-%m-%d', errors= 'coerce')
-movies_df['return'] = movies_df.apply(retorno, axis= 1)
+movies_df['anio'] = movies_df['release_date'][movies_df['release_date'].notnull()].dt.year
+movies_df['return_(%)'] = movies_df.apply(retorno, axis= 1)
+movies_df['runtime_(minutos)'] = movies_df['runtime'].round().astype(int)
+movies_df.drop('runtime', axis=1, inplace=True)
+movies_df['budget_(dolares)'] = movies_df['budget']
+movies_df.drop('budget', axis=1, inplace=True)
+movies_df['revenue_(dolares)'] = movies_df['revenue']
+movies_df.drop('revenue', axis=1, inplace=True)
 
 #ETL credits_df
 credits_df['A'] = credits_df['crew'].apply(obtener)
@@ -108,6 +119,12 @@ directors_df.loc[:, 'id'] = pd.to_numeric(directors_df['id'], errors='coerce')
 df = pd.merge(movies_df, directors_df, on='id', how='outer')
 
 #/Unir todas las columnas desanidadas por su sub-categoria "name" en una sola columna.
+df['belongs_to_collection: name'] = df['belongs_to_collection: name'].fillna('')
+df['belongs_to_collection'] = df['belongs_to_collection: name'].apply(lambda fila: ' '.join(filter(None, fila)))
+df = df.drop(columns=['belongs_to_collection: name'])
+df['belongs_to_collection'] = df['belongs_to_collection'].str.replace(' ', '')
+df['belongs_to_collection'] = df['belongs_to_collection'].apply(insertar_espacio)
+
 df['genres: name'] = df['genres: name'].fillna('')
 df['genres'] = df['genres: name'].apply(lambda fila: ' - '.join(filter(None, fila)), axis=1)
 df = df.drop(columns=['genres: name'])
