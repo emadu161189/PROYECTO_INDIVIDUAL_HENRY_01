@@ -22,8 +22,13 @@ def peliculas_duracion(titulo: str):
 
 @app.get('/franquicia/{franquicia}')
 def franquicia(franquicia:str):
-    '''Se ingresa la franquicia, retornando la cantidad de peliculas, ganancia total y promedio'''
-    return {'franquicia':franquicia, 'cantidad':respuesta, 'ganancia_total':respuesta, 'ganancia_promedio':respuesta}
+    dato = franquicia.title()
+    franquicia = df.loc[df.index[df['belongs_to_collection'] == dato].tolist(), 'belongs_to_collection'].iloc[0]
+    cantidad = df['belongs_to_collection'].value_counts()[dato]
+    df_red = df[df['belongs_to_collection'] == dato]
+    ganancia_total = round(df_red['revenue_(dolares)'].sum() - df_red['budget_(dolares)'].sum())
+    ganancia_promedio = round(df_red['revenue_(dolares)'].mean() - df_red['budget_(dolares)'].mean())
+    return {'franquicia':franquicia, 'cantidad':cantidad, 'ganancia_total':ganancia_total, 'ganancia_promedio':ganancia_promedio}
 
 @app.get('/peliculas_pais/{pais}')
 def peliculas_pais(pais:str):
