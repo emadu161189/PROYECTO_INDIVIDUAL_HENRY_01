@@ -112,7 +112,8 @@ col = Desanidar(credits_df, 1)
 credits_df = pd.concat([credits_df, col], axis= 1)
 directors_df = credits_df[credits_df.columns[[0, 5]]]
 directors_df.columns.values[1] = 'director'
-
+directors_df['director'] = directors_df['director'].fillna('')
+directors_df['director'] = directors_df['director'].apply(insertar_espacio)
 #Merge por id
 movies_df.loc[:, 'id'] = pd.to_numeric(movies_df['id'], errors='coerce')
 directors_df.loc[:, 'id'] = pd.to_numeric(directors_df['id'], errors='coerce')
@@ -120,30 +121,38 @@ df = pd.merge(movies_df, directors_df, on='id', how='outer')
 
 #/Unir todas las columnas desanidadas por su sub-categoria "name" en una sola columna.
 df['belongs_to_collection: name'] = df['belongs_to_collection: name'].fillna('')
-df['belongs_to_collection'] = df['belongs_to_collection: name'].apply(lambda fila: ' '.join(filter(None, fila)))
+df['belongs_to_collection'] = df['belongs_to_collection: name'].apply(lambda fila: ''.join(filter(None, fila)))
 df = df.drop(columns=['belongs_to_collection: name'])
-df['belongs_to_collection'] = df['belongs_to_collection'].str.replace(' ', '')
+df["belongs_to_collection"] = df["belongs_to_collection"].apply(lambda x: x.strip())
 df['belongs_to_collection'] = df['belongs_to_collection'].apply(insertar_espacio)
+df['belongs_to_collection'] = df['belongs_to_collection'].fillna('')
 
 df['genres: name'] = df['genres: name'].fillna('')
 df['genres'] = df['genres: name'].apply(lambda fila: ' - '.join(filter(None, fila)), axis=1)
 df = df.drop(columns=['genres: name'])
-df['genres'] = df['genres'].str.replace(' ', '')
+df["genres"] = df["genres"].apply(lambda x: x.strip())
+df["genres"] = df["genres"].fillna('')
 
 df['production_companies: name'] = df['production_companies: name'].fillna('')
 df['production_companies'] = df['production_companies: name'].apply(lambda fila: ' - '.join(filter(None, fila)), axis=1)
 df = df.drop(columns=['production_companies: name'])
-df['production_companies'] = df['production_companies'].str.replace(' ', '')
+df["production_companies"] = df["production_companies"].apply(lambda x: x.strip())
+df['production_companies'] = df['production_companies'].apply(insertar_espacio)
+df['production_companies'] = df['production_companies'].fillna('')
 
 df['production_countries: name'] = df['production_countries: name'].fillna('')
 df['production_countries'] = df['production_countries: name'].apply(lambda fila: ' - '.join(filter(None, fila)), axis=1)
 df = df.drop(columns=['production_countries: name'])
-df['production_countries'] = df['production_countries'].str.replace(' ', '')
+df["production_countries"] = df["production_countries"].apply(lambda x: x.strip())
+df['production_countries'] = df['production_countries'].apply(insertar_espacio)
+df['production_countries'] = df['production_countries'].fillna('')
 
 df['spoken_languages: name'] = df['spoken_languages: name'].fillna('')
 df['spoken_languages'] = df['spoken_languages: name'].apply(lambda fila: ' - '.join(filter(None, fila)), axis=1)
 df = df.drop(columns=['spoken_languages: name'])
-df['spoken_languages'] = df['spoken_languages'].str.replace(' ', '')
+df["spoken_languages"] = df["spoken_languages"].apply(lambda x: x.strip())
+df['spoken_languages'] = df['spoken_languages'].apply(insertar_espacio)
+df['spoken_languages'] = df['spoken_languages'].fillna('')
 #/
 
 #Eliminar columnas con mas del 70% de datos nulos ya que dicha ausencia vuelve irrelevante la variable
