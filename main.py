@@ -12,31 +12,42 @@ df = pd.read_csv('etl_df', low_memory= False)
 @app.get("/peliculas_idioma/{idioma}")
 def peliculas_idioma(idioma: str):
     cont = df['original_language'].value_counts()[idioma]
-    
+    cont = int(cont)
+
     return {'idioma':idioma, 'cantidad':cont}
     
-@app.get('/peliculas_duracion/{pelicula}')
+@app.get('/peliculas_duracion/{titulo}')
 def peliculas_duracion(titulo: str):
     dato = titulo.title()
-    pelicula = df.loc[df.index[df['title'] == dato].tolist(), 'title'].iloc[0]
-    duracion = df.loc[df.index[df['title'] == dato].tolist(), 'runtime_(minutos)'].iloc[0]
-    anio = df.loc[df.index[df['title'] == dato].tolist(), 'anio'].iloc[0]
+    df["title"] = df["title"].fillna('')
+    tit = df[df["title"].str.contains(dato, case=False)]
+    tit_name = tit['title'].iloc[0]
+    tit_name = str(tit_name)
+    duracion = tit['runtime_(minutos)'].iloc[0]
+    duracion = int(duracion)
+    anio = tit['anio'].iloc[0]
+    anio = int(anio)
 
-    return {'pelicula':pelicula, 'duracion':duracion, 'anio':anio}
+    return {'pelicula':tit_name, 'duracion':duracion, 'anio':anio}
 
 @app.get('/franquicia/{franquicia}')
 def franquicia(franquicia:str):
     dato = franquicia.title()
     df["belongs_to_collection"] = df["belongs_to_collection"].fillna('')
     franq = df[df["belongs_to_collection"].str.contains(dato, case=False)]
+    franquicia_name = franq['belongs_to_collection'].iloc[0]
+    franquicia_name = str(franquicia_name)
     cantidad = franq['belongs_to_collection'].count()
+    cantidad = int(cantidad)
     ganancia_total = round(franq['revenue_(dolares)'].sum() - franq['budget_(dolares)'].sum())
+    ganancia_total = int(ganancia_total)
     ganancia_promedio = round(franq['revenue_(dolares)'].mean() - franq['budget_(dolares)'].mean())
+    ganancia_promedio = int(ganancia_promedio)
     if franq.empty:
        error = {'error': "f'{dato} parametro incorrecto"}
        return error
-
-    return {'franquicia':dato, 'cantidad':cantidad, 'ganancia_total':ganancia_total, 'ganancia_promedio':ganancia_promedio}
+    
+    return {'franquicia':franquicia_name, 'cantidad':cantidad, 'ganancia_total':ganancia_total, 'ganancia_promedio':ganancia_promedio}
 
 @app.get('/peliculas_pais/{pais}')
 def peliculas_pais(pais:str):
@@ -44,6 +55,7 @@ def peliculas_pais(pais:str):
     df["production_countries"] = df["production_countries"].fillna('')
     countr = df[df["production_countries"].str.contains(dato, case=False)]
     respuesta = countr['production_countries'].count()
+    respuesta = int(respuesta)
     if countr.empty:
        error = {'error': "f'{dato} parametro incorrecto"}
        return error
@@ -56,7 +68,9 @@ def productoras_exitosas(productora:str):
     df["production_companies"] = df["production_companies"].fillna('')
     prod = df[df["production_companies"].str.contains(dato, case=False)]
     revenue_total = round(prod['revenue_(dolares)'].sum())
+    revenue_total = int(revenue_total)
     cantidad = prod['title'].count()
+    cantidad = int(cantidad)
     if prod.empty:
        error = {'error': "f'{dato} parametro incorrecto"}
        return error
@@ -68,11 +82,17 @@ def get_director(nombre_director:str):
     dato = nombre_director.title()
     dir = df[df['director'] == dato]
     retorno_total_director = dir['revenue_(dolares)'].sum()
+    retorno_total_director = float(retorno_total_director)
     peliculas = dir['title'].unique()
+    peliculas = list(peliculas)
     anio = dir['anio']
+    anio = list(anio)
     retorno_pelicula = dir['return_(%)']
+    retorno_pelicula = list(retorno_pelicula)
     budget_pelicula = dir['budget_(dolares)']
+    budget_pelicula = list(budget_pelicula)
     revenue_pelicula = dir['revenue_(dolares)']
+    revenue_pelicula = list(revenue_pelicula)
     if dir.empty:
        error = {'error': "f'{dato} parametro incorrecto"}
        return error
@@ -144,3 +164,7 @@ def recomendacion(titulo:str):
     respuesta = respuesta[1:]
 
     return {'lista recomendada': respuesta}
+
+
+if __name__ == "__main__":
+        uvicorn.run(app)
