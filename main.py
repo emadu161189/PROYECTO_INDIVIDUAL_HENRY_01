@@ -1,7 +1,9 @@
-from fastapi import FastAPI
 import pandas as pd
 import numpy as np
-
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics.pairwise import cosine_similarity
+from fastapi import FastAPI
+import uvicorn
 
 app = FastAPI()
 
@@ -30,6 +32,9 @@ def franquicia(franquicia:str):
     cantidad = franq['belongs_to_collection'].count()
     ganancia_total = round(franq['revenue_(dolares)'].sum() - franq['budget_(dolares)'].sum())
     ganancia_promedio = round(franq['revenue_(dolares)'].mean() - franq['budget_(dolares)'].mean())
+    if franq.empty:
+       error = {'error': "f'{dato} parametro incorrecto"}
+       return error
 
     return {'franquicia':dato, 'cantidad':cantidad, 'ganancia_total':ganancia_total, 'ganancia_promedio':ganancia_promedio}
 
@@ -39,6 +44,9 @@ def peliculas_pais(pais:str):
     df["production_countries"] = df["production_countries"].fillna('')
     countr = df[df["production_countries"].str.contains(dato, case=False)]
     respuesta = countr['production_countries'].count()
+    if countr.empty:
+       error = {'error': "f'{dato} parametro incorrecto"}
+       return error
 
     return {'pais':dato, 'cantidad':respuesta}
 
@@ -49,19 +57,90 @@ def productoras_exitosas(productora:str):
     prod = df[df["production_companies"].str.contains(dato, case=False)]
     revenue_total = round(prod['revenue_(dolares)'].sum())
     cantidad = prod['title'].count()
+    if prod.empty:
+       error = {'error': "f'{dato} parametro incorrecto"}
+       return error
 
     return {'productora':dato, 'revenue_total': revenue_total,'cantidad':cantidad}
 
 @app.get('/get_director/{nombre_director}')
 def get_director(nombre_director:str):
-    ''' Se ingresa el nombre de un director que se encuentre dentro de un dataset debiendo devolver el éxito del mismo medido a través del retorno. 
-    Además, deberá devolver el nombre de cada película con la fecha de lanzamiento, retorno individual, costo y ganancia de la misma. En formato lista'''
-    return {'director':nombre_director, 'retorno_total_director':respuesta, 
-    'peliculas':respuesta, 'anio':respuesta,, 'retorno_pelicula':respuesta, 
-    'budget_pelicula':respuesta, 'revenue_pelicula':respuesta}
+    dato = nombre_director.title()
+    dir = df[df['director'] == dato]
+    retorno_total_director = dir['revenue_(dolares)'].sum()
+    peliculas = dir['title'].unique()
+    anio = dir['anio']
+    retorno_pelicula = dir['return_(%)']
+    budget_pelicula = dir['budget_(dolares)']
+    revenue_pelicula = dir['revenue_(dolares)']
+    if dir.empty:
+       error = {'error': "f'{dato} parametro incorrecto"}
+       return error
+    return {'director':dato, 'retorno_total_director':retorno_total_director, 
+    'peliculas':peliculas, 'anio':anio, 'retorno_pelicula':retorno_pelicula, 
+    'budget_pelicula':budget_pelicula, 'revenue_pelicula':revenue_pelicula}
 
 # ML
 @app.get('/recomendacion/{titulo}')
 def recomendacion(titulo:str):
-    '''Ingresas un nombre de pelicula y te recomienda las similares en una lista'''
+    dato = titulo.title()
+    #Extraer el titulo y el genero
+    primer_coincidencia_df = df[df["title"].str.contains(dato, case=False)]
+    if primer_coincidencia_df.empty:
+        error = {'error': "f'{dato} parametro incorrecto"}
+        return error 
+
+    titulo = primer_coincidencia_df['title'].iloc[0]
+    genero = primer_coincidencia_df['genres'].iloc[0]
+    sep = genero.find(' ')
+    genero = genero[:sep]
+
+    #Reducir el df a los que contengan el genero
+    df['genres'] = df['genres'].fillna('')
+    df_reducido = df[df["genres"].str.contains(genero, case=False)]
+    
+    #Eliminar columnas que no utilizaremos
+    col_eliminar = ['original_language', 'release_date', 'status', 'tagline', 'runtime_(minutos)',
+                    'budget_(dolares)', 'revenue_(dolares)', 'production_companies', 'production_countries']
+    df_reducido.drop(columns= col_eliminar, inplace=True)
+
+    #Splitear overview
+    sp_over = df_reducido['overview'].str.split(pat= ' ', n= -1, expand= True)
+    df_reducido = pd.concat([df_reducido, sp_over], axis= 1)
+    df_reducido.drop(columns='overview', inplace= True)
+
+    #Splitear spoken_languages
+    sp_lang = df_reducido['spoken_languages'].str.split(pat= '-', n= -1, expand= True)
+    df_reducido = pd.concat([df_reducido, sp_lang], axis= 1)
+    df_reducido.drop(columns='spoken_languages', inplace= True)
+
+    #Separar la columna title, obtener el indice del dato de entrada y eliminar la columna title del df reducido al cual se aplicara encoding
+    lista_title = df_reducido['title'] #El indice de la variable X es [0]
+    df_reducido.drop(columns='title', inplace= True)
+    
+    #Convertir todo df_reducido a tipo de dato string
+    df_reducido = df_reducido.astype(str)
+
+    #Aplicar label encoding a df_reducido
+    label_encoder = LabelEncoder()
+    df_encoded = df_reducido.apply(label_encoder.fit_transform)
+
+    #Similitud de coseno a df_encoded
+    similitud = cosine_similarity(df_encoded)
+
+    #Debido a que el indice del dato de entrada es 0, separamos la primera fila de la matriz en un array
+
+    array_similitud = similitud[0]
+
+    #Obtener los indices de los 6 valores mas altos
+    indices = np.argsort(-array_similitud)[:6]
+
+    #Creamos una lista vacia 'respuesta', iteramos los indices y agregamos el valor de lista_title para cada indice, quitandole el indice [0], esas seran las peliculas recomendadas.
+    respuesta = []
+
+    for elemento in indices:
+        respuesta.append(lista_title.iloc[elemento])
+
+    respuesta = respuesta[1:]
+
     return {'lista recomendada': respuesta}

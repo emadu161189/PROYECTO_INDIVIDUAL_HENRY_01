@@ -160,5 +160,7 @@ df = eliminar_columnas_nulas(df, 70)
 
 df.drop('vote_count', axis=1, inplace=True) #Se elimina la columna 'vote_count' considerada irrelevante ya que el puntaje de reseña no depende de la cantidad de votos sino de los resultados de los mismos
 df.drop('id', axis=1, inplace=True)#Se elimina la columna 'id' ya que es redundante con el indice del dataset y no se utiliza como clave foranea.
+df = df.drop_duplicates()
+df = df.dropna(subset=['title'])
 
 df.to_csv('etl_df', index= False)
