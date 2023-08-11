@@ -61,4 +61,5 @@ SISTEMA DE RECOMENDACION
 -Se extraen los titulos de las peliculas del dataframe en base a los indices, se guardan en una lista y se devuelve el dato.
 IMPORTANTE: DEBIDO A LA LIMITACION DE RECURSOS DE RENDER, HAY CIERTOS TITULOS PARA LOS CUALES EL SISTEMA DE RECOMENDACION NO FUNCIONARA.
 
+link deploy : https://proyecto-individual-peliculas-bct7.onrender.com/
 
